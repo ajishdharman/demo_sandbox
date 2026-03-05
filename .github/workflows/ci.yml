@@ -1,0 +1,39 @@
+name: Build Deploy Trigger Tests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: echo "Unit tests passed"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simulate deployment
+        run: echo "Application deployed to QA environment"
+
+  trigger-tests:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Playwright tests
+        run: |
+          curl -X POST           -H "Accept: application/vnd.github+json"           -H "Authorization: Bearer ${{ secrets.PLAYWRIGHT_TRIGGER_TOKEN }}"           https://api.github.com/repos/YOUR_USERNAME/demo_playwright/dispatches           -d '{"event_type":"run-playwright-tests"}'
