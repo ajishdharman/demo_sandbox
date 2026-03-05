@@ -9,6 +9,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +27,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - name: Simulate deployment
         run: echo "Application deployed to QA environment"
@@ -33,7 +35,16 @@ jobs:
   trigger-tests:
     needs: deploy
     runs-on: ubuntu-latest
+
     steps:
-      - name: Trigger Playwright tests
+      - name: Trigger Playwright tests in demo_playwright
         run: |
-          curl -X POST           -H "Accept: application/vnd.github+json"           -H "Authorization: Bearer ${{ secrets.PLAYWRIGHT_TRIGGER_TOKEN }}"           https://api.github.com/repos/ajishdharman/demo_playwright/dispatches           -d '{"event_type":"run-playwright-tests"}'
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.PLAYWRIGHT_TRIGGER_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          https://api.github.com/repos/ajishdharman/demo_playwright/dispatches \
+          -d '{"event_type":"run-playwright-tests"}'
+
+      - name: Confirm dispatch sent
+        run: echo "Playwright test trigger sent"
