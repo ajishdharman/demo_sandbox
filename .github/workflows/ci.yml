@@ -29,8 +29,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Simulate deployment
-        run: echo "Application deployed to QA environment"
+      - name: Trigger Render Deployment
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+      - name: Wait for deployment to complete
+        run: sleep 60
 
   trigger-tests:
     needs: deploy
