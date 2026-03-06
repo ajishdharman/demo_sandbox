@@ -33,8 +33,20 @@ jobs:
         run: |
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
 
-      - name: Wait for deployment to complete
-        run: sleep 60
+      - name: Wait for application to become live
+        run: |
+          echo "Waiting for deployment..."
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://demo-sandbox-gmqg.onrender.com)
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Application is live!"
+              exit 0
+            fi
+            echo "Not ready yet... retrying in 10 seconds"
+            sleep 10
+          done
+          echo "Deployment timeout"
+          exit 1
 
   trigger-tests:
     needs: deploy
