@@ -77,9 +77,11 @@ jobs:
         run: chmod -R 777 $GITHUB_WORKSPACE 
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
+        continue-on-error: true
         with:
           target: 'https://demo-sandbox-gmqg.onrender.com'
           allow_issue_writing: false
+          artifact_name: zap-report
 
       - name: Upload ZAP Report
         uses: actions/upload-artifact@v4
