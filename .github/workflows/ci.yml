@@ -64,3 +64,26 @@ jobs:
 
       - name: Confirm dispatch sent
         run: echo "Playwright test trigger sent"
+
+  security-scan:
+    needs: trigger-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'https://demo-sandbox-gmqg.onrender.com'
+
+      - name: Install Nuclei
+        run: |
+          sudo apt update
+          sudo apt install -y nuclei
+
+      - name: Run Nuclei Scan
+        run: |
+          nuclei -u https://demo-sandbox-gmqg.onrender.com -severity critical,high,medium
+
