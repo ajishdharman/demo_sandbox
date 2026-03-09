@@ -87,9 +87,9 @@ jobs:
         with:
           name: zap-security-report
           path: |
-            - report_html.html
-            - report_json.json
-            - report_md.md 
+            report_html.html
+            report_json.json
+            report_md.md 
 
       - name: Install Nuclei
         run: |
