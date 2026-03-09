@@ -81,16 +81,17 @@ jobs:
         with:
           target: 'https://demo-sandbox-gmqg.onrender.com'
           allow_issue_writing: false
-          artifact_name: zap-security-report
+          artifact_name: 'false'
 
-      # - name: Upload ZAP Report
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: zap-security-report
-      #     path: |
-      #       report_html.html
-      #       report_json.json
-      #       report_md.md 
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: zapurityeport
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md 
 
       - name: Install Nuclei
         run: |
