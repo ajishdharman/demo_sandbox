@@ -72,11 +72,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        
+      - name: Fix workspace permissions
+        run: chmod -R 777 $GITHUB_WORKSPACE 
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: 'https://demo-sandbox-gmqg.onrender.com'
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-security-report
+          path: |
+            - report_html.html
+            - report_json.json
+            - report_md.md 
 
       - name: Install Nuclei
         run: |
@@ -92,5 +103,13 @@ jobs:
 
       - name: Run Nuclei Scan
         run: |
-          nuclei -u https://demo-sandbox-gmqg.onrender.com -severity critical,high,medium
+          nuclei -u https://demo-sandbox-gmqg.onrender.com \
+          -severity critical,high,medium \
+          -json -o nuclei-report.json
+
+      - name: Upload Nuclei Report
+        uses: actions/upload-artifact@v4
+        with:
+         name: nuclei-security-report
+         path: nuclei-report.json
 
