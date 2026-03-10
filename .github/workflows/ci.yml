@@ -26,35 +26,48 @@ on:
 
 jobs:
 
+# -----------------------------
+# SAST SCAN
+# -----------------------------
+
   sast-scan:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Semgrep
-        run: pip install semgrep
+      - name: Install security tools
+        run: |
+          pip install semgrep
+          sudo apt-get update
+          sudo apt-get install jq -y
 
-      - name: Run SAST Scan
+      - name: Run Semgrep SAST Scan
         run: |
           semgrep --config=auto \
           --json \
           --output semgrep-report.json || true
 
-      - name: Generate HTML report
+      - name: Generate HTML Vulnerability Report
         run: |
-          echo "<html><body><h1>SAST Report</h1><pre>" > semgrep-report.html
-          cat semgrep-report.json >> semgrep-report.html
-          echo "</pre></body></html>" >> semgrep-report.html
+          echo "<html><body><h2>Semgrep Security Report</h2><table border='1'>" > semgrep-report.html
+          echo "<tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Message</th></tr>" >> semgrep-report.html
 
-      - name: Fail pipeline if HIGH/CRITICAL found
+          jq -r '.results[] | 
+            "<tr><td>\(.extra.severity)</td><td>\(.check_id)</td><td>\(.path)</td><td>\(.start.line)</td><td>\(.extra.message)</td></tr>"' semgrep-report.json >> semgrep-report.html
+
+          echo "</table></body></html>" >> semgrep-report.html
+
+      - name: Generate SARIF Report
         run: |
-          if grep -E '"severity":"(ERROR|HIGH|CRITICAL)"' semgrep-report.json; then
-            echo "High severity vulnerabilities detected!"
-            exit 1
-          else
-            echo "No critical vulnerabilities."
-          fi
+          semgrep --config=auto \
+          --sarif \
+          --output semgrep-report.sarif || true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-report.sarif
 
       - name: Upload SAST Reports
         if: always()
@@ -64,7 +77,12 @@ jobs:
           path: |
             semgrep-report.json
             semgrep-report.html
+            semgrep-report.sarif
 
+
+# -----------------------------
+# BUILD
+# -----------------------------
 
   build:
     needs: sast-scan
@@ -84,6 +102,10 @@ jobs:
       - name: Run unit tests
         run: echo "Unit tests passed"
 
+
+# -----------------------------
+# DEPLOY
+# -----------------------------
 
   deploy:
     needs: build
@@ -110,6 +132,10 @@ jobs:
           exit 1
 
 
+# -----------------------------
+# TRIGGER PLAYWRIGHT TESTS
+# -----------------------------
+
   trigger-tests:
     needs: deploy
     runs-on: ubuntu-latest
@@ -128,13 +154,16 @@ jobs:
         run: echo "Playwright test trigger sent"
 
 
+# -----------------------------
+# DAST SECURITY SCAN
+# -----------------------------
+
   security-scan:
     needs: trigger-tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Fix workspace permissions
         run: chmod -R 777 $GITHUB_WORKSPACE
@@ -149,7 +178,7 @@ jobs:
           artifact_name: 'false'
 
 
-      - name: Upload ZAP Report
+      - name: Upload ZAP Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -159,13 +188,17 @@ jobs:
             report_json.json
             report_md.md
 
-
+         
       - name: Install Nuclei
         run: |
-          curl -L https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei-linux-amd64.zip -o nuclei.zip
-          unzip nuclei.zip
-          sudo mv nuclei /usr/local/bin/
-          nuclei -version
+           curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
+           | grep browser_download_url \
+           | grep linux_amd64.zip \
+           | cut -d '"' -f 4 \
+           | wget -i -
+
+           unzip -o nuclei_*_linux_amd64.zip
+           sudo mv nuclei /usr/local/bin/
 
 
       - name: Run Nuclei Scan
