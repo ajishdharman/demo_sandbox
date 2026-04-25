@@ -206,16 +206,43 @@ jobs:
       - name: Install Nuclei Templates
         run: nuclei -update-templates
 
+      # Warm up target
+      - name: Warm up target
+        run: |
+          echo "Warming up target..."
+          for i in {1..5}; do
+            curl -s -o /dev/null -w "%{http_code}\n" https://demo-sandbox-gmqg.onrender.com && break
+            echo "Retrying in 5s..."
+            sleep 5
+          done
+
+      # Check target availability
+      - name: Check target availability
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" https://demo-sandbox-gmqg.onrender.com)
+          echo "HTTP Status: $status"
+          if [ "$status" -ne 200 ]; then
+            echo "Target not reachable, failing pipeline"
+            exit 1
+          fi
+
       - name: Run Nuclei Scan
         run: |
           nuclei -u https://demo-sandbox-gmqg.onrender.com \
-          -t ~/nuclei-templates/ \
           -severity critical,high,medium \
-          -jsonl -o nuclei-report.json
+          -jsonl -o nuclei-report.json \
+          -timeout 10 \
+          -retries 3 \
+          -rl 5 \
+          -stats \
+          -debug
 
+      # debug
       - name: Debug Report
         run: |
+          echo "==== FILE LIST ===="
           ls -lh
+          echo "==== REPORT ===="
           cat nuclei-report.json || echo "Empty report"
 
       - name: Upload Nuclei Report
