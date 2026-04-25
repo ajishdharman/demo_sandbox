@@ -192,25 +192,31 @@ jobs:
             report_json.json
             report_md.md
 
-         
       - name: Install Nuclei
         run: |
-           curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
-           | grep browser_download_url \
-           | grep linux_amd64.zip \
-           | cut -d '"' -f 4 \
-           | wget -i -
+          curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest \
+          | grep browser_download_url \
+          | grep linux_amd64.zip \
+          | cut -d '"' -f 4 \
+          | wget -i -
 
-           unzip -o nuclei_*_linux_amd64.zip
-           sudo mv nuclei /usr/local/bin/
+          unzip -o nuclei_*_linux_amd64.zip
+          sudo mv nuclei /usr/local/bin/
 
+      - name: Install Nuclei Templates
+        run: nuclei -update-templates
 
       - name: Run Nuclei Scan
         run: |
           nuclei -u https://demo-sandbox-gmqg.onrender.com \
+          -t ~/nuclei-templates/ \
           -severity critical,high,medium \
           -jsonl -o nuclei-report.json
 
+      - name: Debug Report
+        run: |
+          ls -lh
+          cat nuclei-report.json || echo "Empty report"
 
       - name: Upload Nuclei Report
         if: always()
