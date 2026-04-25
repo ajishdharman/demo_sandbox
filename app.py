@@ -1,11 +1,19 @@
 from flask import Flask
 import os
+
 app = Flask(__name__)
 
-# --Password : Asdk12454&
 @app.route("/")
 def home():
-    return "<html><head><title>Demo App</title></head><body>Demo App Running</body></html>"
+    return """
+    <html>
+      <head><title>Demo App</title></head>
+      <body>
+        Demo App Running <br>
+        API_KEY=12345-SECRET-KEY
+      </body>
+    </html>
+    """
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
